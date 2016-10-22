@@ -3,11 +3,11 @@ package foo;
 /**
  * @author Pavel Belevich
  */
-public class FibonacciTask extends MyRecursiveTask<FibonacciNumber> {
+public class FibonacciTaskComputeAndJoin extends MyRecursiveTask<FibonacciNumber> {
 
     private final int n;
 
-    public FibonacciTask(int n) {
+    public FibonacciTaskComputeAndJoin(int n) {
         this.n = n;
     }
 
@@ -16,16 +16,16 @@ public class FibonacciTask extends MyRecursiveTask<FibonacciNumber> {
         if (n < 2) {
             return new FibonacciNumber(n, n);
         } else {
-            FibonacciTask ft1 = new FibonacciTask(n - 1);
+            FibonacciTaskComputeAndJoin ft1 = new FibonacciTaskComputeAndJoin(n - 1);
             ft1.fork();
-            FibonacciTask ft2 = new FibonacciTask(n - 2);
+            FibonacciTaskComputeAndJoin ft2 = new FibonacciTaskComputeAndJoin(n - 2);
             return ft2.compute().plus(ft1.join());
         }
     }
 
     @Override
     public String toString() {
-        return "FibonacciTask{" +
+        return "FibonacciTaskComputeAndJoin{" +
                 "n=" + n +
                 "} " + super.toString();
     }
