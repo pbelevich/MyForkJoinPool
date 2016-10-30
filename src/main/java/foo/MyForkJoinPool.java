@@ -8,6 +8,8 @@ import java.util.concurrent.LinkedBlockingDeque;
  */
 public class MyForkJoinPool {
 
+    private static volatile MyForkJoinPool commonPool;
+
     final ThreadLocal<MyRecursiveTask> caller = new ThreadLocal<>();
     final BlockingDeque<Object> queue = new LinkedBlockingDeque<>();
     final Object STOP = new Object();
@@ -35,6 +37,17 @@ public class MyForkJoinPool {
         for (int i = 0; i < threads.length; i++) {
             queue.offer(STOP);
         }
+    }
+
+    public static MyForkJoinPool commonPool() {
+        if (commonPool == null) {
+            synchronized (MyForkJoinPool.class) {
+                if (commonPool == null) {
+                    commonPool = new MyForkJoinPool();
+                }
+            }
+        }
+        return commonPool;
     }
 
 }
