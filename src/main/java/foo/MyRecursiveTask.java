@@ -36,6 +36,7 @@ public abstract class MyRecursiveTask<V> {
         setCaller(this);
         result = compute();
         done = true;
+        onComplete();
         return result;
     }
 
@@ -79,10 +80,17 @@ public abstract class MyRecursiveTask<V> {
         getForkJoinPool().caller.set(task);
     }
 
-    private MyForkJoinPool getForkJoinPool() {
-        return ((MyForkJoinThread) Thread.currentThread()).forkJoinPool;
+    protected static MyForkJoinPool getForkJoinPool() {
+        if (Thread.currentThread() instanceof MyForkJoinThread) {
+            return ((MyForkJoinThread) Thread.currentThread()).forkJoinPool;
+        } else {
+            return null;
+        }
     }
 
     protected abstract V compute();
+
+    public void onComplete() {
+    }
 
 }
