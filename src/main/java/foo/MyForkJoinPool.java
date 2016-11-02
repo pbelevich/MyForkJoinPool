@@ -11,7 +11,7 @@ public class MyForkJoinPool {
     private static volatile MyForkJoinPool commonPool;
 
     final ThreadLocal<MyRecursiveTask> caller = new ThreadLocal<>();
-    final BlockingDeque<Object> queue = new LinkedBlockingDeque<>();
+    final BlockingDeque<BlockingDeque<Object>> queue = new LinkedBlockingDeque<>();
     final Object STOP = new Object();
     final MyForkJoinThread[] threads;
 
@@ -28,14 +28,22 @@ public class MyForkJoinPool {
     }
 
     public <T> MyRecursiveTask<T> submit(MyRecursiveTask<T> task) {
-        this.queue.offer(task);
+        final BlockingDeque<Object> freeQueue = this.queue.poll();
+        if (freeQueue == null) {
+            if (Thread.currentThread() instanceof MyForkJoinThread) {
+                ((MyForkJoinThread) Thread.currentThread()).queue.offer(task);
+            } else {
+                threads[0].queue.offer(task); //TODO choose thread with smallest queue
+            }
+        } else {
+            freeQueue.offer(task);
+        }
         return task;
     }
 
     public void shutdown() {
-        this.queue.clear();
         for (int i = 0; i < threads.length; i++) {
-            queue.offer(STOP);
+            threads[i].queue.offer(STOP);
         }
     }
 
@@ -48,6 +56,23 @@ public class MyForkJoinPool {
             }
         }
         return commonPool;
+    }
+
+    static MyForkJoinThread currentMyForkJoinThread() {
+        if (Thread.currentThread() instanceof MyForkJoinThread) {
+            return (MyForkJoinThread) Thread.currentThread();
+        } else {
+            return null;
+        }
+    }
+
+    static MyForkJoinPool getForkJoinPool() {
+        final MyForkJoinThread forkJoinThread = currentMyForkJoinThread();
+        if (forkJoinThread != null) {
+            return forkJoinThread.forkJoinPool;
+        } else {
+            return null;
+        }
     }
 
 }
