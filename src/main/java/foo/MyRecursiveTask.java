@@ -3,6 +3,9 @@ package foo;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static foo.MyForkJoinPool.currentMyForkJoinThread;
+import static foo.MyForkJoinPool.getForkJoinPool;
+
 /**
  * @author Pavel Belevich
  */
@@ -60,14 +63,14 @@ public abstract class MyRecursiveTask<V> {
                 break;
             }
             try {
-                final Object item = getForkJoinPool().queue.pollLast();
+                final Object item = currentMyForkJoinThread().queue.pollLast();
                 if (item == null || item == getForkJoinPool().STOP) {
                     break;
                 }
                 MyRecursiveTask<?> task = (MyRecursiveTask<?>) item;
                 task.call();
             } catch (Exception e) {
-                throw new RuntimeException();
+                throw new RuntimeException(e);
             }
         }
     }
@@ -78,14 +81,6 @@ public abstract class MyRecursiveTask<V> {
 
     private void setCaller(MyRecursiveTask task) {
         getForkJoinPool().caller.set(task);
-    }
-
-    protected static MyForkJoinPool getForkJoinPool() {
-        if (Thread.currentThread() instanceof MyForkJoinThread) {
-            return ((MyForkJoinThread) Thread.currentThread()).forkJoinPool;
-        } else {
-            return null;
-        }
     }
 
     protected abstract V compute();
