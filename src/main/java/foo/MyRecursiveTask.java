@@ -16,22 +16,45 @@ public abstract class MyRecursiveTask<V> {
     volatile V result = null;
 
     public final MyRecursiveTask<V> fork() {
-        getCaller().registerChild(this);
-        return getForkJoinPool().submit(this);
+        if (getForkJoinPool().queue.isEmpty()) {
+            this.call();
+            return this;
+        } else {
+            getCaller().registerChild(this);
+            return getForkJoinPool().submit(this);
+        }
     }
 
     public final V join() {
         waitForChildren();
-        waitForResult();
+        waitForResultActive();
         return result;
     }
 
     public final V get()  {
-        waitForResult();
+        waitForResultPassive();
         return result;
     }
 
-    private void waitForResult() {
+    private void waitForResultActive() {
+        while (!done) {
+            try {
+                final Object item = currentMyForkJoinThread().queue.pollLast();
+                if (item == null) {
+                    continue;
+                }
+                if (item == getForkJoinPool().STOP) {
+                    break;
+                }
+                MyRecursiveTask<?> task = (MyRecursiveTask<?>) item;
+                task.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    private void waitForResultPassive() {
         while (!done) ;
     }
 
@@ -52,7 +75,7 @@ public abstract class MyRecursiveTask<V> {
     }
 
     private void waitForChildren() {
-        while (true) {
+        while (!done) {
             boolean allChildrenDone = true;
             for (MyRecursiveTask<V> child : children) {
                 if (!child.isDone()) {
